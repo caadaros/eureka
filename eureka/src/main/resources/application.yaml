@@ -13,3 +13,12 @@ eureka:
     hostname: ${RENDER_EXTERNAL_HOSTNAME:localhost}
   server:
     enable-self-preservation: false
+
+management:
+  endpoint:
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: health

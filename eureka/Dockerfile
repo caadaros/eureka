@@ -1,16 +1,26 @@
-# Etapa 1: Construcción
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
+# ── Etapa 1: compilar ──────────────────────────────────────────
+# Usamos el Maven de la imagen oficial (no dependemos de mvnw,
+# evitando problemas de permisos/CRLF al subir desde Windows)
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
-# Copiamos todo el proyecto
-COPY . .
+# Copiar solo el pom primero (capa cacheada de dependencias)
+COPY pom.xml ./
+RUN mvn dependency:go-offline -q
 
-# Compilamos usando el Maven global de la imagen (sin usar ./mvnw)
+# Copiar el código fuente y compilar sin tests
+COPY src ./src
 RUN mvn clean package -DskipTests -q
 
-# Etapa 2: Ejecución
+# ── Etapa 2: imagen final ligera ───────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
+
+# wget es necesario para el healthcheck definido en docker-compose
+RUN apk add --no-cache wget
+
 COPY --from=builder /app/target/*.jar app.jar
-EXPOSE 8761
+
+EXPOSE 8080
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
